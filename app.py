@@ -10,31 +10,59 @@ import random
 import os
 import gdown
 import tarfile
+import zipfile
 
 # =========================
 # MODEL DOWNLOAD (Google Drive)
 # =========================
 MODEL_FILE_ID = "1j9da4mKD7t3TjWXAEN5-Cxq1vtHgI7lc"
-ARCHIVE_PATH = "age_gender_prediction_model.tar.gz"
+DOWNLOAD_PATH = "model_download.tmp"
 MODEL_PATH = "age_gender_prediction_model.keras"
 
 def download_and_extract_model():
-    if not os.path.exists(MODEL_PATH):
-        st.info("Downloading compressed model archive. Please wait...")
-        gdown.download(id=MODEL_FILE_ID, output=ARCHIVE_PATH, quiet=True)
-        if not os.path.exists(ARCHIVE_PATH) or not tarfile.is_tarfile(ARCHIVE_PATH):
-            if os.path.exists(ARCHIVE_PATH):
-                os.remove(ARCHIVE_PATH)
-            st.error(
-                "Model download failed. Make sure the Google Drive file is shared "
-                "as 'Anyone with the link' and is a .tar.gz archive."
-            )
-            st.stop()
+    if os.path.exists(MODEL_PATH):
+        return
+
+    st.info("Downloading model from Google Drive. Please wait...")
+    gdown.download(id=MODEL_FILE_ID, output=DOWNLOAD_PATH, quiet=True)
+
+    if not os.path.exists(DOWNLOAD_PATH):
+        st.error(
+            "Model download failed. Make sure the Google Drive file is shared "
+            "as 'Anyone with the link'."
+        )
+        st.stop()
+
+    # A .keras model is itself a zip containing config.json, so check for that
+    # before treating the download as a zip archive to extract.
+    if zipfile.is_zipfile(DOWNLOAD_PATH):
+        with zipfile.ZipFile(DOWNLOAD_PATH) as zf:
+            names = zf.namelist()
+            if "config.json" in names:
+                is_keras_model = True
+            else:
+                is_keras_model = False
+                st.info("Extracting model file...")
+                zf.extractall()
+        if is_keras_model:
+            os.replace(DOWNLOAD_PATH, MODEL_PATH)
+    elif tarfile.is_tarfile(DOWNLOAD_PATH):
         st.info("Extracting model file...")
-        with tarfile.open(ARCHIVE_PATH, "r:gz") as tar:
+        with tarfile.open(DOWNLOAD_PATH) as tar:
             tar.extractall()
-        os.remove(ARCHIVE_PATH)
-        st.success("Model downloaded and extracted.")
+    else:
+        os.remove(DOWNLOAD_PATH)
+        st.error("Downloaded file is not a .keras model, .zip, or .tar.gz archive.")
+        st.stop()
+
+    if os.path.exists(DOWNLOAD_PATH):
+        os.remove(DOWNLOAD_PATH)
+
+    if not os.path.exists(MODEL_PATH):
+        st.error(f"'{MODEL_PATH}' was not found after downloading the model.")
+        st.stop()
+
+    st.success("Model downloaded.")
 
 download_and_extract_model()
 
