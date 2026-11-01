@@ -341,7 +341,7 @@ st.markdown("""
 # =========================
 @st.cache_resource
 def load_model():
-    model = tf.keras.models.load_model("age_gender_prediction_model.keras")
+    model = tf.keras.models.load_model(MODEL_PATH, compile=False)
     return model
 
 model = load_model()

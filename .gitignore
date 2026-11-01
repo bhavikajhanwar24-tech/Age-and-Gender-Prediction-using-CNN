@@ -1,0 +1,4 @@
+*.keras
+*.tar.gz
+model_download.tmp
+__pycache__/
