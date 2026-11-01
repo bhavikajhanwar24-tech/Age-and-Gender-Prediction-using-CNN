@@ -8,24 +8,28 @@ import time
 import random
 
 import os
-import requests
+import gdown
 import tarfile
 
 # =========================
 # MODEL DOWNLOAD (Google Drive)
 # =========================
-MODEL_URL = "https://drive.google.com/uc?export=download&id=1j9da4mKD7t3TjWXAEN5-Cxq1vtHgI7lc"  # <-- Replace with your archive's file ID
+MODEL_FILE_ID = "1j9da4mKD7t3TjWXAEN5-Cxq1vtHgI7lc"
 ARCHIVE_PATH = "age_gender_prediction_model.tar.gz"
 MODEL_PATH = "age_gender_prediction_model.keras"
 
 def download_and_extract_model():
     if not os.path.exists(MODEL_PATH):
         st.info("Downloading compressed model archive. Please wait...")
-        with requests.get(MODEL_URL, stream=True) as r:
-            r.raise_for_status()
-            with open(ARCHIVE_PATH, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
+        gdown.download(id=MODEL_FILE_ID, output=ARCHIVE_PATH, quiet=True)
+        if not os.path.exists(ARCHIVE_PATH) or not tarfile.is_tarfile(ARCHIVE_PATH):
+            if os.path.exists(ARCHIVE_PATH):
+                os.remove(ARCHIVE_PATH)
+            st.error(
+                "Model download failed. Make sure the Google Drive file is shared "
+                "as 'Anyone with the link' and is a .tar.gz archive."
+            )
+            st.stop()
         st.info("Extracting model file...")
         with tarfile.open(ARCHIVE_PATH, "r:gz") as tar:
             tar.extractall()
